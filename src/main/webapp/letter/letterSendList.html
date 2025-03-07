@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>函件发送列表</title>
+    <link rel="stylesheet" type="text/css" href="/static/jquery-easyui-1.3.3/themes/default/easyui.css"></link>
+    <link rel="stylesheet" type="text/css" href="/static/jquery-easyui-1.3.3/themes/icon.css"></link>
+    <script type="text/javascript" src="/static/jquery-easyui-1.3.3/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/jquery-easyui-1.3.3/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="/static/jquery-easyui-1.3.3/locale/easyui-lang-zh_CN.js"></script>
+    <script type="text/javascript">
+
+        var url;
+
+        function formatEdit(val,row){
+            return "<a href=\"javascript:openRoleChooseDialog('"+row.roles+"',"+row.id+")\"><img style='margin-top: 4px' src='/static/images/edit.gif' /></a>";
+        }
+
+        function openRoleChooseDialog(roles,supplierId){
+            var rolesArr=roles.split(",");
+            $("#roleSetDialog").dialog("open").dialog("setTitle","选择角色");
+            $("#roleDg").datagrid({
+                        url:'/admin/role/listAll',
+                        onLoadSuccess:function(data){
+                            var selectedRows=$("#roleDg").datagrid('getRows');
+                            for(var i=0;i<selectedRows.length;i++){
+                                var name=selectedRows[i].name;
+                                if($.inArray(name, rolesArr)>=0){
+                                    $("#roleDg").datagrid('checkRow',i);
+                                }
+                            }
+                        }
+            });
+            $("#supplierId").val(supplierId);
+        }
+
+        function saveRoleSet(){
+            var supplierId=$("#supplierId").val();
+            var selectedRows=$("#roleDg").datagrid("getSelections");
+            var strRoleIds=[];
+            for(var i=0;i<selectedRows.length;i++){
+                strRoleIds.push(selectedRows[i].id);
+            }
+            var roleIds=strRoleIds.join(",");
+            $.post("/letterSend/saveRoleSet",{roleIds:roleIds,supplierId:supplierId},function(result){
+                if(result.success){
+                    closeRoleSetDialog();
+                    $("#dg").datagrid("reload");
+                }else{
+                    $.messager.alert("系统提示","提交失败，请联系管理员！");
+                }
+            },"json");
+        }
+
+        function closeRoleSetDialog(){
+             $("#roleSetDialog").dialog("close");
+         }
+
+
+
+
+        function deleteSupplier(){
+            var selectedRows=$("#dg").datagrid("getSelections");
+            if(selectedRows.length==0){
+                 $.messager.alert("系统提示","请选择要删除的数据！");
+                 return;
+             }
+            var strIds=[];
+             for(var i=0;i<selectedRows.length;i++){
+                 strIds.push(selectedRows[i].id);
+             }
+             var ids=strIds.join(",");
+             $.messager.confirm("系统提示","您确定要删除这<font color=red>"+selectedRows.length+"</font>条数据吗？",function(r){
+                    if(r){
+                        $.post("/letterSend/delete",{ids:ids},function(result){
+                            if(result.success){
+                                 $.messager.alert("系统提示","数据已成功删除！");
+                                 $("#dg").datagrid("reload");
+                            }else{
+                                $.messager.alert("系统提示",result.errorInfo);
+                            }
+                        },"json");
+                    }
+           });
+        }
+
+
+        function openSupplierAddDialog(){
+            $("#dlg").dialog("open").dialog("setTitle","添加函件发送信息");
+            url="/letterSend/save";
+        }
+
+        function openSupplierModifyDialog(){
+            var selectedRows=$("#dg").datagrid("getSelections");
+             if(selectedRows.length!=1){
+                 $.messager.alert("系统提示","请选择一条要修改的数据！");
+                 return;
+             }
+             var row=selectedRows[0];
+             $("#dlg").dialog("open").dialog("setTitle","修改供应商信息");
+             $("#fm").form("load",row);
+             $("#supplierName").attr("readonly","readonly")
+             url="/letterSend/save?id="+row.id;
+         }
+
+
+
+        function saveSupplier(){
+             $("#fm").form("submit",{
+                url:url,
+                onSubmit:function(){
+                    return $(this).form("validate");
+                },
+                success:function(result){
+                    var result=eval('('+result+')');
+                    if(result.success){
+                        $.messager.alert("系统提示","保存成功！");
+                        resetValue();
+                        $("#dlg").dialog("close");
+                        $("#dg").datagrid("reload");
+                    }else{
+                        $.messager.alert("系统提示",result.errorInfo);
+                    }
+                }
+             });
+         }
+
+
+
+        function resetValue(){
+             $("#name").val("");
+             $("#contact").val("");
+             $("#number").val("");
+             $("#address").val("");
+             $("#remarks").val("");
+         }
+
+         function closeSupplierDialog(){
+             $("#dlg").dialog("close");
+             resetValue();
+         }
+
+         function searchSupplier(){
+            $("#dg").datagrid('load',{
+                "name":$("#s_name").val()
+            });
+        }
+
+
+        $(function () {
+
+             $("#dg").datagrid({
+                    //双击事件
+                    onDblClickRow: function (index, row) {
+                        $("#dlg").dialog("open").dialog("setTitle","修改供应商信息");
+                            $("#fm").form("load",row);
+                            $("#supplierName").attr("readonly","readonly")
+                            url="/letterSend/save?id="+row.id;
+                    }
+                });
+
+
+         });
+         var picBase;
+        	function formatEdit(val,row){
+        	console.log(row)
+		return "<a href=\"javascript:openMenuSetDialog("+row.letPic+")\">点击预览</a>";
+	}
+	                function formatAction(val,row){
+	                $(document).ready(function () {
+                 $("#s_supplier").combobox({
+                 onChange: function (n,o) {
+                 var labelElement = document.getElementById("content");
+                 labelElement.innerHTML = n;
+                 }
+                 });
+                 });
+
+            return "<a href=\"javascript:openMenuSendMsh("+row.letPic+")\">发短信</a>";
+        }
+
+
+
+                function openMenuSetDialog(id){
+                 $("#picFarm").dialog("open").dialog("setTitle","函件预览");
+                 $.post("/pic/getBase",{id:id},function(result){
+                  var imgElement = document.getElementById('Img');
+                  imgElement.src = result.rows.picData;},"json");
+                 }
+
+                        function openMenuSendMsh(id){
+                 $("#sendFarm").dialog("open").dialog("setTitle","发送短信");
+                // $.post("/pic/getBase",{id:id},function(result){
+                //  var imgElement = document.getElementById('Img');
+                //  imgElement.src = result.rows.picData;},"json");
+                 }
+
+
+
+
+
+
+
+
+    </script>
+</head>
+<body style="margin: 1px">
+<table id="dg" title="函件发送列表" class="easyui-datagrid"
+       fitColumns="true" pagination="true" rownumbers="true"
+       url="/letterSend/list" fit="true" toolbar="#tb">
+    <thead>
+    <tr>
+        <th field="cb" checkbox="true" align="center"></th>
+        <th field="tel" width="90" align="center">发送手机号</th>
+        <th field="support" width="80" align="center">运营商</th>
+        <th field="ownSpace" width="80" align="center">号码所属地</th>
+        <th field="account" width="80" align="center">操作账号</th>
+        <th field="batchNum" width="80" align="center">批次编号</th>
+        <th field="temNum" width="80" align="center">模板编号</th>
+        <th field="letNum" width="80" align="center">函件编号</th>
+        <th field="overdueName" width="80" align="center">逾期人姓名</th>
+        <th field="overdueIdNum" width="80" align="center">逾期人身份证号</th>
+        <th field="endDate" width="80" align="center">截至日期</th>
+        <th field="repayDate" width="80" align="center">还款日期</th>
+        <th field="repayAmt" width="80" align="center">还款金额/元</th>
+        <th field="mediatorName" width="80" align="center">调解员姓名</th>
+        <th field="mediatorTel" width="80" align="center">调解员电话</th>
+        <th field="letCreateTime" width="80" align="center">函件创建日期</th>
+        <!--<th field="letPic" width="80" align="center">函件图片</th>-->
+        <th field="letPic" width="50" align="center" formatter="formatEdit">函件图片</th>
+        <th field="letType" width="80" align="center">函件类型</th>
+        <th field="letType" width="80" align="center">发送状态</th>
+        <th field="sendStatus" width="80" align="center">发送次数</th>
+        <th field="streetStatus" width="80" align="center">直邮状态</th>
+        <th field="action" width="80" align="center" formatter="formatAction">操作</th>
+    </tr>
+    </thead>
+</table>
+
+<div id="tb">
+    <div>
+        <a href="javascript:openSupplierAddDialog()" class="easyui-linkbutton" iconCls="icon-add" plain="true">添加</a>
+        <a href="javascript:openSupplierModifyDialog()" class="easyui-linkbutton" iconCls="icon-edit"
+           plain="true">修改</a>
+        <a href="javascript:deleteSupplier()" class="easyui-linkbutton" iconCls="icon-remove" plain="true">删除</a>
+        <a href="javascript:searchSupplier()" class="easyui-linkbutton" iconCls="icon-search" plain="true">搜索</a>
+    </div>
+    <div>
+        &nbsp;省：&nbsp;<input type="text" id="s_name1" size="20"
+                                      onkeydown="if(event.keyCode==13) searchSupplier()"/>
+        市：&nbsp;<input type="text" id="s_name2" size="20"
+                                onkeydown="if(event.keyCode==13) searchSupplier()"/>
+        批次号：&nbsp;<input type="text" id="s_name3" size="20"
+                                onkeydown="if(event.keyCode==13) searchSupplier()"/>
+        函件编号：&nbsp;<input type="text" id="s_name4" size="20"
+                                onkeydown="if(event.keyCode==13) searchSupplier()"/>
+        发送手机号：&nbsp;<input type="text" id="s_name5" size="20"
+                                onkeydown="if(event.keyCode==13) searchSupplier()"/>
+        逾期人身份证：&nbsp;<input type="text" id="s_name6" size="20"
+                                onkeydown="if(event.keyCode==13) searchSupplier()"/>
+        逾期人姓名：&nbsp;<input type="text" id="s_name7" size="20"
+                                  onkeydown="if(event.keyCode==13) searchSupplier()"/>
+        开始日期：&nbsp;<input type="text" id="s_name8" size="20"
+                                  onkeydown="if(event.keyCode==13) searchSupplier()"/>
+        截止日期：&nbsp;<input type="text" id="s_name9" size="20"
+                                  onkeydown="if(event.keyCode==13) searchSupplier()"/>
+        函件模版：&nbsp;<input type="text" id="s_name10" size="20"
+                                  onkeydown="if(event.keyCode==13) searchSupplier()"/>
+        函件类型：&nbsp;<input type="text" id="s_name11" size="20"
+                              onkeydown="if(event.keyCode==13) searchSupplier()"/>
+        发送状态：&nbsp;<input type="text" id="s_name12" size="20"
+                              onkeydown="if(event.keyCode==13) searchSupplier()"/>
+        运营商：&nbsp;<input type="text" id="s_name13" size="20"
+                              onkeydown="if(event.keyCode==13) searchSupplier()"/>
+        直邮状态：&nbsp;<input type="text" id="s_name14" size="20"
+                              onkeydown="if(event.keyCode==13) searchSupplier()"/>
+    </div>
+</div>
+
+<div id="dlg" class="easyui-dialog" style="width:500px;height:350px;padding: 10px 20px"
+     closed="true" buttons="#dlg-buttons" data-options="onClose:function(){resetValue()}">
+
+    <form id="fm" method="post">
+        <table cellspacing="8px">
+            <tr>
+                <td>发送手机号：</td>
+                <td><input type="text" id="sendTel" name="sendTel" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>运营商：</td>
+                <td><input type="text" id="support" name="support" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>号码所属地：</td>
+                <td><input type="text" id="ownSpace" name="ownSpace" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>操作账号：</td>
+                <td><input type="text" id="account" name="account" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>批次编号：</td>
+                <td><input type="text" id="batchNum" name="batchNum" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>模板编号：</td>
+                <td><input type="text" id="temNum" name="temNum" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>函件编号：</td>
+                <td><input type="text" id="telNum" name="telNum" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>逾期人姓名：</td>
+                <td><input type="text" id="overdueName" name="overdueName" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>逾期人身份证号：</td>
+                <td><input type="text" id="overdueIdNum" name="overdueIdNum" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>截止日期：</td>
+                <td><input type="text" id="endDate" name="endDate" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>还款日期：</td>
+                <td><input type="text" id="repayDate" name="repayDate" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>还款金额/元：</td>
+                <td><input type="text" id="repayAmt" name="repayAmt" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>调解员姓名：</td>
+                <td><input type="text" id="mediatorName" name="mediatorName" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>调解员电话：</td>
+                <td><input type="text" id="mediatorTel" name="mediatorTel" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>函件创建日期：</td>
+                <td><input type="text" id="letCreateTime" name="letCreateTime" class="easyui-validatebox"
+                           required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>函件图片：</td>
+                <td><input type="text" id="letPic" name="letPic" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>函件类型：</td>
+                <td><input type="text" id="letType" name="letType" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>发送状态：</td>
+                <td><input type="text" id="sendStatus" name="sendStatus" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>发送次数：</td>
+                <td><input type="text" id="streetStatus" name="streetStatus" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+            <tr>
+                <td>直邮状态：</td>
+                <td><input type="text" id="address" name="address" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+
+
+            <tr>
+                <td valign="top">备注：</td>
+                <td>
+                    <textarea rows="5" cols="40" id="remarks" name="remarks"></textarea>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+
+<div id="picFarm" class="easyui-dialog" style="width:650px;height:600px;padding: 10px 20px"
+     closed="true" buttons="#dlg-buttons" data-options="onClose:function(){resetValue()}">
+
+    <form id="pic" method="post">
+        <tr id="preview_tr">
+            <td class="td-content">
+                <img id="Img" width="600px" height="500px"/>
+        </tr>
+    </form>
+</div>
+
+<div id="sendFarm" class="easyui-dialog" style="width:600px;height:300px;padding: 10px 20px"
+     closed="true" buttons="#dlg-buttons" data-options="onClose:function(){resetValue()}">
+
+    <form id="sendfm" method="post">
+        <table cellspacing="8px">
+                发送模版：
+            <tr>
+                <select class="easyui-combobox"  id="s_supplier"  style="width: 200px;"   data-options="panelHeight:'auto',valueField:'msfText',textField:'msgTemName',url:'/letMsgTem/listMenu'"></select>
+                <!--<td><input type="text" id="sendTmp" name="sendTel" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>-->
+            </tr>
+        </table>
+        <tr>
+            <lable id="content"  style="width:400px;height:200px;"></lable>
+            <!--<td><input type="text" id="sendTmp" name="sendTel" class="easyui-validatebox" required="true"
+                       style="width: 250px"/></td>-->
+        </tr>
+    </form>
+    <div id="dlg-buttons">
+        <a href="javascript:saveSupplier()" class="easyui-linkbutton" iconCls="icon-ok">发送</a>
+        <a href="javascript:closeSupplierDialog()" class="easyui-linkbutton" iconCls="icon-cancel">取消</a>
+    </div>
+</div>
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>案件模版管理</title>
+    <link rel="stylesheet" type="text/css" href="/static/jquery-easyui-1.3.3/themes/default/easyui.css"></link>
+    <link rel="stylesheet" type="text/css" href="/static/jquery-easyui-1.3.3/themes/icon.css"></link>
+    <script type="text/javascript" src="/static/jquery-easyui-1.3.3/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/jquery-easyui-1.3.3/jquery.easyui.min.js"></script>
+    <script type="text/javascript">
+
+        var url;
+
+        function formatEdit(val,row){
+            return "<a href=\"javascript:openRoleChooseDialog('"+row.id+")\"><img style='margin-top: 4px' src='/static/images/edit.gif' /></a>";
+        }
+
+        function openRoleChooseDialog(roles,supplierId){
+            $("#roleSetDialog").dialog("open").dialog("setTitle","模版详情");
+            $("#roleDg").datagrid({
+                        url:'/caseTmp/detail',
+                        onLoadSuccess:function(data){
+                            var selectedRows=$("#roleDg").datagrid('getRows');
+                            for(var i=0;i<selectedRows.length;i++){
+                                var name=selectedRows[i].name;
+
+                            }
+                        }
+            });
+            $("#supplierId").val(supplierId);
+        }
+
+        function saveRoleSet(){
+            var supplierId=$("#supplierId").val();
+            var selectedRows=$("#roleDg").datagrid("getSelections");
+            var strRoleIds=[];
+            for(var i=0;i<selectedRows.length;i++){
+                strRoleIds.push(selectedRows[i].id);
+            }
+            var roleIds=strRoleIds.join(",");
+            $.post("/caseTmp/saveRoleSet",{roleIds:roleIds,supplierId:supplierId},function(result){
+                if(result.success){
+                    closeRoleSetDialog();
+                    $("#dg").datagrid("reload");
+                }else{
+                    $.messager.alert("系统提示","提交失败，请联系管理员！");
+                }
+            },"json");
+        }
+
+        function closeRoleSetDialog(){
+             $("#roleSetDialog").dialog("close");
+         }
+
+
+
+
+function deleteColum(){
+            var selectedRows=$("#caseDg").datagrid("getSelections");
+            if(selectedRows.length==0){
+                 $.messager.alert("系统提示","请选择要删除的数据！");
+                 return;
+             }
+            var strIds=[];
+             for(var i=0;i<selectedRows.length;i++){
+                 strIds.push(selectedRows[i].id);
+             }
+             var ids=strIds.join(",");
+             $.messager.confirm("系统提示","您确定要删除这<font color=red>"+selectedRows.length+"</font>条数据吗？",function(r){
+                    if(r){
+                        $.post("/caseTmp/deleteDetail",{ids:ids},function(result){
+                            if(result.success){
+                                 $.messager.alert("系统提示","数据已成功删除！");
+                                 $("#caseDg").datagrid("reload");
+                            }else{
+                                $.messager.alert("系统提示",result.errorInfo);
+                            }
+                        },"json");
+                    }
+           });
+        }
+
+        function deleteSupplier(){
+            var selectedRows=$("#dg").datagrid("getSelections");
+            if(selectedRows.length==0){
+                 $.messager.alert("系统提示","请选择要删除的数据！");
+                 return;
+             }
+            var strIds=[];
+             for(var i=0;i<selectedRows.length;i++){
+                 strIds.push(selectedRows[i].id);
+             }
+             var ids=strIds.join(",");
+             $.messager.confirm("系统提示","您确定要删除这<font color=red>"+selectedRows.length+"</font>条数据吗？",function(r){
+                    if(r){
+                        $.post("/caseTmp/delete",{ids:ids},function(result){
+                            if(result.success){
+                                 $.messager.alert("系统提示","数据已成功删除！");
+                                 $("#dg").datagrid("reload");
+                            }else{
+                                $.messager.alert("系统提示",result.errorInfo);
+                            }
+                        },"json");
+                    }
+           });
+        }
+
+
+        function openTmpAddDialog(){
+            $("#tmpDlg").dialog("open").dialog("setTitle","添加模版");
+        }
+            var currentTmpId;
+            function openColumAddDialog(){
+             $("#columnAdd").dialog("open").dialog("setTitle","添加字段");
+         }
+
+        function openSupplierModifyDialog(){
+            var selectedRows=$("#dg").datagrid("getSelections");
+             if(selectedRows.length!=1){
+                 $.messager.alert("系统提示","请选择一条要修改的数据！");
+                 return;
+             }
+             var row=selectedRows[0];
+             $("#dlg").dialog("open").dialog("setTitle","修改案件信息");
+             $("#fm").form("load",row);
+             $("#supplierName").attr("readonly","readonly")
+             url="/caseTmp/save?id="+row.id;
+         }
+
+
+
+        function saveSupplier(){
+             $("#fm").form("submit",{
+                url:"/caseTmp/save",
+                onSubmit:function(){
+                    return $(this).form("validate");
+                },
+                success:function(result){
+                    var result=eval('('+result+')');
+                    if(result.success){
+                        $.messager.alert("系统提示","保存成功！");
+                        resetValue();
+                        $("#dlg").dialog("close");
+                        $("#dg").datagrid("reload");
+                    }else{
+                        $.messager.alert("系统提示",result.errorInfo);
+                    }
+                }
+             });
+         }
+
+                 function saveAddColum(){
+             $("#columnAddFm").form("submit",{
+                url:"/caseTmp/saveDetail?tmpId="+currentTmpId,
+                onSubmit:function(){
+                    return $(this).form("validate");
+                },
+                success:function(result){
+                    var result=eval('('+result+')');
+                    if(result.success){
+                        $.messager.alert("系统提示","保存成功！");
+                        resetValue();
+                        $("#caseDg").datagrid("reload");
+                    }else{
+                        $.messager.alert("系统提示",result.errorInfo);
+                    }
+                }
+             });
+         }
+
+
+        function resetValue(){
+             $("#name").val("");
+             $("#contact").val("");
+             $("#number").val("");
+             $("#address").val("");
+             $("#remarks").val("");
+         }
+
+         function closeSupplierDialog(datas){
+             $("#dlg").dialog("close");
+             resetValue();
+         }
+
+                  function closAddColum(datas){
+             $("#columnAdd").dialog("close");
+             resetValue();
+         }
+
+
+                 function export1(){
+         var exportData
+         var titles = ['姓名', '手机号 ', '字段1 ', '字段3', '字段3','字段4','字段5'];
+                 $.post("/caseTmp/detail",{},function(result){
+                console.log(result);
+                     toExcel(titles, result, '案件导出.xlsx', '案件');
+            },"json");
+                 console.log(123)
+        }
+
+
+         function searchSupplier(){
+            $("#dg").datagrid('load',{
+                "name":$("#s_name").val()
+            });
+        }
+
+
+
+
+
+
+
+
+        $(function () {
+
+             $("#dg").datagrid({
+                    //双击事件
+                    onDblClickRow: function (index, row) {
+                        $("#dlg").dialog("open").dialog("setTitle","修改供应商信息");
+                            $("#fm").form("load",row);
+                            $("#supplierName").attr("readonly","readonly")
+                            url="/caseTmp/save?id="+row.id;
+                    }
+                });
+
+
+         });
+         var picBase;
+            function formatEdit(val,row){
+            console.log(row)
+        return "<a href=\"javascript:openMenuSetDialog("+row.letPic+")\">点击预览</a>";
+    }
+                    function formatAction(val,row){
+                    $(document).ready(function () {
+                 $("#s_supplier").combobox({
+                 onChange: function (n,o) {
+                 var labelElement = document.getElementById("content");
+                 labelElement.innerHTML = n;
+                 }
+                 });
+                 });
+
+            return "<a href=\"javascript:openMenuSendMsh("+row.letPic+")\">发短信</a>";
+        }
+
+
+
+                function openMenuSetDialog(id){
+                 $("#picFarm").dialog("open").dialog("setTitle","函件预览");
+                 $.post("/pic/getBase",{id:id},function(result){
+                  var imgElement = document.getElementById('Img');
+                  imgElement.src = result.rows.picData;
+                  },"json");
+                 }
+
+                        function openMenuSendMsh(id){
+                 $("#sendFarm").dialog("open").dialog("setTitle","发送短信");
+                // $.post("/pic/getBase",{id:id},function(result){
+                //  var imgElement = document.getElementById('Img');
+                //  imgElement.src = result.rows.picData;},"json");
+                 }
+
+        // 准备数据，也可以是通过Ajax从后端得到的数据
+
+
+function b64toBlob(data){
+    var sliceSize = 512;
+    var chars = atob(data);
+    var byteArrays = [];
+    for(var offset=0; offset<chars.length; offset+=sliceSize){
+        var slice = chars.slice(offset, offset+sliceSize);
+        var byteNumbers = new Array(slice.length);
+        for(var i=0; i<slice.length; i++){
+            byteNumbers[i] = slice.charCodeAt(i);
+        }
+        var byteArray = new Uint8Array(byteNumbers);
+        byteArrays.push(byteArray);
+    }
+    return new Blob(byteArrays, {
+        type: ''
+    });
+};
+
+
+function toHTML(titles, datas) {
+    // 显示表格边框
+    var table = '<table border="1" rull="all" style="border-collapse:collapse">';
+
+    // header，设置行高为32px
+    table += '<tr style="height:32px">';
+    // 遍历拼接header行
+    for (var t = 0; t < titles.length; t++) {
+        // 设置header行样式为垂直居中、列宽90px、水平居中
+        table += '<td style="vertical-align:middle;width:90px;text-align:center">' + titles[t] + '</td>';
+    }
+    table += '</tr>';
+
+    // body
+    for (var d = 0; d < datas.length; d++) {
+        // 设置行高为24px，垂直居中，水平居中
+        table += '<tr style="height:24px">';
+        table += '<td style="vertical-align:middle;text-align:center">' + datas[d].name + '</td>';
+        table += '<td style="vertical-align:middle;text-align:center">' + datas[d].tel + '</td>';
+        table += '<td style="vertical-align:middle;text-align:center">' + datas[d].text1 + '</td>';
+        table += '<td style="vertical-align:middle;text-align:center">' + datas[d].text2 + '</td>';
+        table += '<td style="vertical-align:middle;text-align:center">' + datas[d].text3 + '</td>';
+        table += '<td style="vertical-align:middle;text-align:center">' + datas[d].text4 + '</td>';
+        table += '<td style="vertical-align:middle;text-align:center">' + datas[d].text5 + '</td>';
+        table += '</tr>';
+    }
+    table += '</table>';
+
+    return table;
+};
+
+
+function toExcel(titles, datas, fileName, sheetName) {
+    /*
+    参数1：标题行
+    参数2：数据
+    参数3：文件名
+    参数3：sheet名
+    */
+    var uri = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,'
+    , template = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><meta http-equiv="content-type" content="application/vnd.ms-excel; charset=UTF-8"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>{table}</body></html>'
+    , base64 = function (s) { return window.btoa(unescape(encodeURIComponent(s))) }
+    , format = function (s, c) { return s.replace(/{(\w+)}/g, function (m, p) { return c[p]; }) }
+
+    var table = toHTML(titles, datas);
+    var ctx = {worksheet: sheetName, table: table};
+    var data = base64(format(template, ctx));
+    if (window.navigator.msSaveBlob){
+        var blob = b64toBlob(data);
+        window.navigator.msSaveBlob(blob, filename);
+    } else {
+        var alink = $('<a style="display:none"></a>').appendTo('body');
+        alink[0].href = uri + data;
+        alink[0].download = fileName;
+        alink[0].click();
+        alink.remove();
+    }
+
+};
+function formatAction(val,row){
+
+
+            return "<a href=\"javascript:openMenuSendMsh("+row.id+")\">查看模版</a>";
+        }
+
+            function openMenuSendMsh(tmpId){
+        $("#tmpInfo").dialog("open").dialog("setTitle","模版详情");
+        currentTmpId=tmpId;
+        $("#caseDg").datagrid({
+                    url:'/caseTmp/detail?id='+tmpId,
+                    onLoadSuccess:function(data){
+                        var selectedRows=$("#caseDg").datagrid('getRows');
+                        //for(var i=0;i<selectedRows.length;i++){
+                    //		var name=selectedRows[i].name;
+                    //	}
+                    }
+        });
+        //$("#userId").val(tmpId);
+    }
+
+
+    </script>
+    <script type="text/javascript" src="/static/jquery-easyui-1.3.3/locale/easyui-lang-zh_CN.js"></script>
+</head>
+<body style="margin: 1px">
+<table id="dg" title="案件模版列表" class="easyui-datagrid"
+       fitColumns="true" pagination="true" rownumbers="true"
+       url="/caseTmp/list" fit="true" toolbar="#tb">
+    <thead>
+    <tr>
+        <th field="cb" checkbox="true" align="center"></th>
+        <th field="id" width="90" align="center">模版编号</th>
+        <th field="tmpTitle" width="80" align="center">模版标题</th>
+        <th field="action" width="80" align="center" formatter="formatAction">操作</th>
+    </tr>
+    </thead>
+</table>
+
+<div id="tb">
+    <div>
+        <a href="javascript:openTmpAddDialog()" class="easyui-linkbutton" iconCls="icon-add" plain="true">添加模版</a>
+        <a href="javascript:openSupplierModifyDialog()" class="easyui-linkbutton" iconCls="icon-edit"
+           plain="true">修改</a>
+        <a href="javascript:deleteSupplier()" class="easyui-linkbutton" iconCls="icon-remove" plain="true">删除</a>
+        <a href="javascript:searchSupplier()" class="easyui-linkbutton" iconCls="icon-search" plain="true">刷新</a>
+        <!--<a href="javascript:export1()" class="easyui-linkbutton" iconCls="icon-search" plain="true">导出</a>-->
+    </div>
+
+</div>
+
+<div id="tmpInfo" class="easyui-dialog" style="width:500px;height:350px;"
+     closed="true" buttons="#dlg-buttons2">
+    <input type="hidden" id="userId" name="userId"/>
+    <a href="javascript:openColumAddDialog()" class="easyui-linkbutton" iconCls="icon-add" plain="true">添加字段</a>
+    <a href="javascript:deleteColum()" class="easyui-linkbutton" iconCls="icon-remove" plain="true">删除字段</a>
+    <table id="caseDg" class="easyui-datagrid" fitColumns="true"
+           fit="true">
+        <thead>
+        <tr>
+            <th field="cb" checkbox="true" align="center"></th>
+            <th field="id" width="50" align="left">编号</th>
+            <th field="columName" width="100" align="left">模版字段</th>
+            <th field="colum" width="200" align="left">字段类型</th>
+        </tr>
+        </thead>
+    </table>
+
+</div>
+
+
+<div id="columnAdd" class="easyui-dialog" style="width:400px;height:250px;padding: 10px 20px"
+     closed="true" buttons="#addColum-buttons" data-options="onClose:function(){resetValue()}">
+    <form id="columnAddFm" method="post">
+        <table cellspacing="8px">
+            <tr>
+                <td>字段：</td>
+                <td><input type="text" id="columName" name="columName" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            <tr>
+                <td>类型：</td>
+                <td><input type="text" id="colum" name="colum" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+        </table>
+    </form>
+</div>
+
+
+<div id="tmpDlg" class="easyui-dialog" style="width:500px;height:350px;padding: 10px 20px"
+     closed="true" buttons="#dlg-buttons" data-options="onClose:function(){resetValue()}">
+
+    <form id="fm" method="post">
+        <table cellspacing="8px">
+            <tr>
+                <td>模版标题：</td>
+                <td><input type="text" id="tmpTitle" name="tmpTitle" class="easyui-validatebox" required="true"
+                           style="width: 250px"/></td>
+            </tr>
+        </table>
+    </form>
+
+</div>
+
+
+</body>
+<div id="dlg-buttons">
+    <a href="javascript:saveSupplier()" class="easyui-linkbutton" iconCls="icon-ok">添加</a>
+    <a href="javascript:closeSupplierDialog()" class="easyui-linkbutton" iconCls="icon-cancel">取消</a>
+</div>
+<div id="addColum-buttons">
+    <a href="javascript:saveAddColum()" class="easyui-linkbutton" iconCls="icon-ok">添加</a>
+    <a href="javascript:closAddColum()" class="easyui-linkbutton" iconCls="icon-cancel">取消</a>
+</div>
+</html>

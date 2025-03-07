@@ -1,0 +1,17 @@
+消息模板编号
+消息模板名称
+短信标题
+短信内容
+签名
+申请时间
+审核状态
+审核信息
+
+msgTemNum
+msgTemName
+msgTitle
+msfText
+signature
+appTime
+approveStatus
+approveInfo

@@ -1,0 +1,23 @@
+server:
+  port: 8080
+#  context-path: /jude
+spring:
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/db_letter?characterEncoding=utf-8&useSSL=false&
+    #
+    username: root
+    password: Wanm1314
+  jpa:
+    hibernate.ddl-auto: update
+    show-sql: true
+  thymeleaf:
+    cache: false
+sms:
+  api:
+    baseUrl: https://openapi.danmi.com
+ #   accountSid: 5508eb0f3c6ed1701818d14f782ad57c
+    accountSid: 4de5da7c57a67200849572eb3a12ab2a
+    authToken: 6fd2cae798640047d8d5cc501153fd7b
+    #authToken: 9dab989acc1b94b41107010fefc5d6dc
+

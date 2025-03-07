@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>案件信息录入</title>
+    <link rel="stylesheet" type="text/css" href="/static/jquery-easyui-1.3.3/themes/default/easyui.css"></link>
+    <link rel="stylesheet" type="text/css" href="/static/jquery-easyui-1.3.3/themes/icon.css"></link>
+    <script type="text/javascript" src="/static/jquery-easyui-1.3.3/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/jquery-easyui-1.3.3/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="/static/jquery-easyui-1.3.3/locale/easyui-lang-zh_CN.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script type="text/javascript">
+
+        var url;
+
+        function formatEdit(val,row){
+            return "<a href=\"javascript:openRoleChooseDialog('"+row.roles+"',"+row.id+")\"><img style='margin-top: 4px' src='/static/images/edit.gif' /></a>";
+        }
+
+        function openRoleChooseDialog(roles,supplierId){
+            var rolesArr=roles.split(",");
+            $("#roleSetDialog").dialog("open").dialog("setTitle","选择角色");
+            $("#roleDg").datagrid({
+                        url:'/admin/role/listAll',
+                        onLoadSuccess:function(data){
+                            var selectedRows=$("#roleDg").datagrid('getRows');
+                            for(var i=0;i<selectedRows.length;i++){
+                                var name=selectedRows[i].name;
+                                if($.inArray(name, rolesArr)>=0){
+                                    $("#roleDg").datagrid('checkRow',i);
+                                }
+                            }
+                        }
+            });
+            $("#supplierId").val(supplierId);
+        }
+
+        function saveRoleSet(){
+            var supplierId=$("#supplierId").val();
+            var selectedRows=$("#roleDg").datagrid("getSelections");
+            var strRoleIds=[];
+            for(var i=0;i<selectedRows.length;i++){
+                strRoleIds.push(selectedRows[i].id);
+            }
+            var roleIds=strRoleIds.join(",");
+            $.post("/caseInfo/saveRoleSet",{roleIds:roleIds,supplierId:supplierId},function(result){
+                if(result.success){
+                    closeRoleSetDialog();
+                    $("#dg").datagrid("reload");
+                }else{
+                    $.messager.alert("系统提示","提交失败，请联系管理员！");
+                }
+            },"json");
+        }
+
+        function closeRoleSetDialog(){
+             $("#roleSetDialog").dialog("close");
+         }
+
+
+
+
+        function deleteSupplier(){
+            var selectedRows=$("#dg").datagrid("getSelections");
+            if(selectedRows.length==0){
+                 $.messager.alert("系统提示","请选择要删除的数据！");
+                 return;
+             }
+            var strIds=[];
+             for(var i=0;i<selectedRows.length;i++){
+                 strIds.push(selectedRows[i].id);
+             }
+             var ids=strIds.join(",");
+             $.messager.confirm("系统提示","您确定要删除这<font color=red>"+selectedRows.length+"</font>条数据吗？",function(r){
+                    if(r){
+                        $.post("/caseInfo/delete",{ids:ids},function(result){
+                            if(result.success){
+                                 $.messager.alert("系统提示","数据已成功删除！");
+                                 $("#dg").datagrid("reload");
+                            }else{
+                                $.messager.alert("系统提示",result.errorInfo);
+                            }
+                        },"json");
+                    }
+           });
+        }
+
+var tmpId;
+        function openSupplierAddDialog(){
+            $("#dlg").dialog("open").dialog("setTitle","案件录入");
+            url="/caseInfo/save?tmpId="+tmpId;
+        }
+
+        function openSupplierModifyDialog(){
+            var selectedRows=$("#dg").datagrid("getSelections");
+             if(selectedRows.length!=1){
+                 $.messager.alert("系统提示","请选择一条要修改的数据！");
+                 return;
+             }
+             var row=selectedRows[0];
+             $("#dlg").dialog("open").dialog("setTitle","修改案件信息");
+             $("#fm").form("load",row);
+             $("#supplierName").attr("readonly","readonly")
+             url="/caseInfo/save?id="+row.id;
+         }
+
+
+
+        function saveSupplier(){
+             $("#fm").form("submit",{
+                url:url,
+                onSubmit:function(){
+                    return $(this).form("validate");
+                },
+                success:function(result){
+                    var result=eval('('+result+')');
+                    if(result.success){
+                        $.messager.alert("系统提示","保存成功！");
+                        resetValue();
+                        $("#dlg").dialog("close");
+                        $("#dg").datagrid("reload");
+                    }else{
+                        $.messager.alert("系统提示",result.errorInfo);
+                    }
+                }
+             });
+         }
+
+
+
+        function resetValue(){
+             $("#name").val("");
+             $("#contact").val("");
+             $("#number").val("");
+             $("#address").val("");
+             $("#remarks").val("");
+         }
+
+         function closeSupplierDialog(){
+             $("#dlg").dialog("close");
+             resetValue();
+         }
+
+
+         function searchSupplier(){
+            $("#dg").datagrid('load',{
+                "name":$("#s_name").val()
+            });
+        }
+
+
+
+
+        $(function () {
+
+             $("#dg").datagrid({
+                    //双击事件
+                    onDblClickRow: function (index, row) {
+                        $("#dlg").dialog("open").dialog("setTitle","修改供应商信息");
+                            $("#fm").form("load",row);
+                            $("#supplierName").attr("readonly","readonly")
+                            url="/caseInfo/save?id="+row.id;
+                    }
+                });
+
+
+         });
+         var picBase;
+            function formatEdit(val,row){
+            console.log(row)
+        return "<a href=\"javascript:openMenuSetDialog("+row.letPic+")\">点击预览</a>";
+    }
+                    function formatAction(val,row){
+                    $(document).ready(function () {
+                 $("#s_supplier").combobox({
+                 onChange: function (n,o) {
+                 tmpId=n
+                 var labelElement = document.getElementById("content");
+                 labelElement.innerHTML = n;
+                 }
+                 });
+                 });
+
+            return "<a href=\"javascript:openMenuSendMsh("+row.letPic+")\">发短信</a>";
+        }
+var jsonData
+ function initExcel(){
+  document.getElementById('excelFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, {type: 'array'});
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      jsonData = XLSX.utils.sheet_to_json(worksheet);
+    };
+    reader.readAsArrayBuffer(file);
+  });
+ }
+
+var tmpSize
+                function importData(){
+
+                var obj = JSON.stringify(jsonData)
+                console.log(JSON.stringify(jsonData))
+                              $.post("/caseInfo/save",{'data':obj,'tmpId': 1,'tmpSize' : tmpSize},function(result){
+                                console.log(result);
+                                 },"json");
+
+                                 $.ajax({
+    url: '/post-data', // 后端处理 URL
+    type: 'POST', // 请求类型
+    contentType: 'application/json', // 设置内容类型为 JSON
+    data: JSON.stringify(complexObject), // 将对象转换为 JSON 字符串
+    success: function(response) {
+        console.log('Data sent successfully:', response);
+    },
+    error: function(xhr, status, error) {
+        console.error('Error sending data:', error);
+    }
+});
+
+
+
+
+                 }
+
+
+
+
+
+
+                function openMenuSetDialog(id){
+                 $("#picFarm").dialog("open").dialog("setTitle","函件预览");
+                 $.post("/pic/getBase",{id:id},function(result){
+                  var imgElement = document.getElementById('Img');
+                  imgElement.src = result.rows.picData;},"json");
+                 }
+                        function openMenuSendMsh(id){
+                 $("#sendFarm").dialog("open").dialog("setTitle","发送短信");
+                // $.post("/pic/getBase",{id:id},function(result){
+                //  var imgElement = document.getElementById('Img');
+                //  imgElement.src = result.rows.picData;},"json");
+                 }
+               function init(){
+                 $(document).ready(function () {
+                 $("#tmp").combobox({
+                 onChange: function (n,o) {
+                 tmpId=n
+
+
+
+$(document).ready(function(){
+let detailList;
+var count;
+                 $.post("/caseTmp/detail",{id:n},function(result){
+                   detailList=result.rows;
+                   count=result.total;
+                   tmpSize=count;
+var fields =[];
+var entity={};
+//var subFiledStr='<tr><td>案件编号:</td><td><input type="text" id="tmpId" name="tmpId" class="easyui-validatebox" required="true" style="width: 250px"/></td></tr>';
+var subFiledStr='';
+//fields[0]={};
+//fields[0].field='tmpId';
+//fields[0].title='案件编号';
+//fields[0].width=80;
+//fields[0].sortable=true;
+//fields[0].align='right';
+
+for(var i=0;i<count;i++){
+entity={};
+entity.field='c'+i;
+entity.title=detailList[i].columName;
+entity.width=80;
+entity.sortable=true;
+entity.align='right'
+fields[i]=entity;
+subFiledStr=subFiledStr+'<tr><td>'+detailList[i].columName+':</td><td><input type="text" id="c'+i+'" name="c'+i +'" class="easyui-validatebox" required="true" style="width: 250px"/></td></tr>'
+}
+console.log(fields)
+$('#dg').datagrid({
+        url:'/caseInfo/list?tmpId='+n, // 数据源URL
+        method:'post',
+        columns:[fields]
+    });
+var divElement = document.getElementById('submit');
+    //subFiledStr=subFiledStr+'<tr><td>123：</td><td><input type="text" id="msgTemNum1" name="msgTemNum" class="easyui-validatebox" required="true" style="width: 250px"/></td></tr>'
+    divElement.innerHTML =subFiledStr;
+    //$.parser.parse(divElement);
+    console.log(456)
+    initExcel();
+
+
+
+
+    //var submitFields;
+
+
+//    $('#dlg').datagrid({
+  //      columns:[[{ field: 'id', title: 'ID', width: 100 },
+    //    { field: 'name', title: 'Name', width: 150, editor: 'text' }]]
+    //});
+
+});
+                  },"json");
+                 }
+                 });
+                 });
+
+
+        }
+        init();
+    </script>
+</head>
+<body style="margin: 1px">
+<table id="dg" title="案件录入列表" class="easyui-datagrid"
+       fitColumns="true" pagination="true" rownumbers="true"
+       url="/caseInfo/list" fit="true" toolbar="#tb">
+    <thead>
+    <tr id="dgList">
+        <th field="name" width="90" align="center">请选择模版</th>
+    </tr>
+    </thead>
+</table>
+
+<div id="tb">
+    <div>
+        <a href="javascript:importData()" class="easyui-linkbutton" iconCls="icon-add" plain="true">批量录入</a>
+
+        <input type="file" id="excelFile" accept=".xlsx, .xls"/>
+        <div id="excelData"></div>
+        <a href="javascript:openSupplierAddDialog()" class="easyui-linkbutton" iconCls="icon-add" plain="true">录入</a>
+        <a href="javascript:openSupplierModifyDialog()" class="easyui-linkbutton" iconCls="icon-edit"
+           plain="true">修改</a>
+        <a href="javascript:deleteSupplier()" class="easyui-linkbutton" iconCls="icon-remove" plain="true">删除</a>
+        <a href="javascript:searchSupplier()" class="easyui-linkbutton" iconCls="icon-search" plain="true">刷新</a>
+        <select class="easyui-combobox" required="true" id="tmp" name="tmp" style="width: 90px;"
+                data-options="panelHeight:'auto',editable:false,valueField:'id',textField:'tmpTitle',url:'/caseTmp/listAll'">
+            模版：</select>
+    </div>
+</div>
+<!--class="easyui-dialog"-->
+<div id="dlg" class="easyui-dialog" style="width:500px;height:350px;padding: 10px 20px"
+     closed="true" buttons="#dlg-buttons" data-options="onClose:function(){resetValue()}">
+    <!--录入表单0-->
+    <form id="fm" method="post">
+        <table cellspacing="8px" id="submit">
+            <tr>
+                <td>请选择模版：</td>
+            </tr>
+        </table>
+    </form>
+
+</div>
+
+
+</body>
+<div id="dlg-buttons">
+    <a href="javascript:saveSupplier()" class="easyui-linkbutton" iconCls="icon-ok">提交</a>
+    <a href="javascript:closeSupplierDialog()" class="easyui-linkbutton" iconCls="icon-cancel">取消</a>
+</div>
+</html>

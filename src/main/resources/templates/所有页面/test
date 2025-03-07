@@ -1,0 +1,19 @@
+-- db_letter.t_msg_tem definition
+
+CREATE TABLE `t_msg_tem` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `app_time` varchar(200)  NULL,
+  `approve_info` varchar(200)  NULL,
+  `approve_status` varchar(200)  NULL,
+  `contact` varchar(50)  NULL,
+  `create_time` datetime DEFAULT NULL,
+  `msf_text` varchar(200)  NULL,
+  `msg_tem_name` varchar(200)  NULL,
+  `msg_tem_num` varchar(200)  NULL,
+  `name` varchar(200)  NULL,
+  `signature` varchar(200)  NULL,
+  `update_time` datetime DEFAULT NULL,
+  `update_user` varchar(50)  NULL,
+  `msg_title` varchar(200) COLLATE ascii_bin DEFAULT NULL,
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=2 ;
